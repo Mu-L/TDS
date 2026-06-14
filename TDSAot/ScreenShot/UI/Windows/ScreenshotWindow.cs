@@ -875,10 +875,12 @@ public sealed class ScreenshotWindow : Window
         };
         visual.Children.Add(bg);
         Canvas.SetLeft(bg, 0); Canvas.SetTop(bg, 0);
+        // ScaleTransform 默认以元素中心为原点（Avalonia ≠ WPF），会导致导出后标注相对底图偏移。
         var annoHost = new Canvas
         {
             Width = _captureBounds.Width,
             Height = _captureBounds.Height,
+            RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative),
             RenderTransform = new ScaleTransform(_dpiScale, _dpiScale),
         };
         annoHost.Children.Add(_annoCanvas);
