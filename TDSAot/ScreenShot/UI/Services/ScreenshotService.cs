@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using TDS.ScreenShot.Core.Capture;
 using TDS.ScreenShot.UI.Models;
 using TDS.ScreenShot.UI.Windows;
+using TDS.Screenshot;
 
 namespace TDS.ScreenShot.UI.Services;
 
@@ -159,9 +160,8 @@ public static class ScreenshotService
         );
         if (file is null)
             return result;
-        var path = file.Path.AbsolutePath;
-        await using var fs = File.Create(path);
-        await fs.WriteAsync(result.PngBytes);
+        await ScreenshotFileSaver.WritePngToStorageFileAsync(file, result.PngBytes);
+        var path = ScreenshotFileSaver.GetStorageFileLocalPath(file);
         return result with { SavedPath = path };
     }
 

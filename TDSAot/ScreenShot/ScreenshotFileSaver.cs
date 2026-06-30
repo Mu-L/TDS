@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Avalonia.Platform.Storage;
 
 namespace TDS.Screenshot;
 
@@ -11,9 +12,31 @@ internal static class ScreenshotFileSaver
     internal static string ResolveDirectory(string? configured, string fallbackDirectory)
     {
         if (string.IsNullOrWhiteSpace(configured))
-            return fallbackDirectory;
-        return configured.Trim().TrimEnd('\\', '/');
+            return NormalizeDirectoryPath(fallbackDirectory);
+
+        var expanded = Environment.ExpandEnvironmentVariables(configured.Trim());
+        if (!Path.IsPathRooted(expanded))
+            expanded = Path.Combine(fallbackDirectory, expanded);
+
+        return NormalizeDirectoryPath(expanded);
     }
+
+    private static string NormalizeDirectoryPath(string path)
+        => Path.GetFullPath(path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+
+    /// <summary>
+    /// Write PNG via the storage API. Avoids <see cref="Uri.AbsolutePath"/> which
+    /// keeps URL-encoding and breaks non-ASCII / some folder paths on Windows.
+    /// </summary>
+    internal static async Task WritePngToStorageFileAsync(IStorageFile file, byte[] pngBytes)
+    {
+        await using var stream = await file.OpenWriteAsync();
+        await stream.WriteAsync(pngBytes);
+        await stream.FlushAsync();
+    }
+
+    internal static string? GetStorageFileLocalPath(IStorageFile file)
+        => file.TryGetLocalPath() ?? (file.Path.IsFile ? file.Path.LocalPath : null);
 
     internal static string BuildFileName()
         => $"{FileNamePrefix}_{DateTime.Now:yyyyMMdd_HHmmss_fff}.png";

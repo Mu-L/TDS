@@ -13,8 +13,10 @@ using TDS.ScreenShot.Core.Capture;
 using TDS.ScreenShot.Core.Annotations;
 using TDS.ScreenShot.UI.Controls;
 using TDS.ScreenShot.UI.Models;
+using TDS.Globalization;
 using TDS.ScreenShot.UI.Services;
 using TDS.Screenshot;
+using TDSAot.Utils;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace TDS.ScreenShot.UI.Windows;
@@ -1084,10 +1086,11 @@ public sealed class ScreenshotWindow : Window
                     new FilePickerFileType("PNG 图片") { Patterns = new[] { "*.png" } }
                 }
             });
-            if (file is null) return;
-            var path = file.Path.AbsolutePath;
-            await using var fs = File.Create(path);
-            await fs.WriteAsync(png);
+            if (file is null)
+                return;
+
+            await ScreenshotFileSaver.WritePngToStorageFileAsync(file, png);
+            var path = ScreenshotFileSaver.GetStorageFileLocalPath(file);
             Result = new EditResult
             {
                 Outcome = EditOutcome.Saved,
@@ -1097,13 +1100,14 @@ public sealed class ScreenshotWindow : Window
                 PngBytes = png,
                 SavedPath = path,
             };
+            Close();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"DoSaveAsync failed: {ex}");
-            Result ??= new EditResult { Outcome = EditOutcome.Cancelled };
+            var lang = LangManager.Instance.CurrentLang;
+            Message.ShowWaringOk(lang.ScreenshotSaveFailed, ex.Message);
         }
-        Close();
     }
 
     // -----------------------------------------------------------------------------------
